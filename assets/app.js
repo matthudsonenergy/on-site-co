@@ -10,6 +10,8 @@ const tabInitialized = {
   research: false,
 };
 
+const THEME_STORAGE_KEY = 'onsite-theme';
+
 function setupTabs() {
   const buttons = document.querySelectorAll('[data-tab-target]');
   const panels = document.querySelectorAll('[data-tab-panel]');
@@ -35,7 +37,38 @@ function setupTabs() {
   }
 }
 
-document.addEventListener('DOMContentLoaded', setupTabs);
+document.addEventListener('DOMContentLoaded', () => {
+  setupTabs();
+  setupThemeToggle();
+});
+
+function setupThemeToggle() {
+  const toggle = document.getElementById('themeToggle');
+  const label = document.getElementById('themeToggleLabel');
+
+  if (!toggle || !label) return;
+
+  const savedPreference = localStorage.getItem(THEME_STORAGE_KEY);
+  const initialMode = savedPreference === 'light' ? 'light' : 'night';
+
+  toggle.checked = initialMode === 'night';
+  applyTheme(initialMode, label);
+
+  toggle.addEventListener('change', () => {
+    const mode = toggle.checked ? 'night' : 'light';
+    applyTheme(mode, label);
+    localStorage.setItem(THEME_STORAGE_KEY, mode);
+  });
+}
+
+function applyTheme(mode, labelEl) {
+  const isLight = mode === 'light';
+  document.body.classList.toggle('light-mode', isLight);
+
+  if (labelEl) {
+    labelEl.textContent = isLight ? 'Normal Mode' : 'Night Mode';
+  }
+}
 
 // ------------------------
 // Strategy Tab
