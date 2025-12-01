@@ -1,8 +1,11 @@
 # On-Site Co
 
-Static HTML pages for On-Site Co content, including a beachhead strategy overview, a TCO calculator, and metallurgy market research materials.
+Static HTML pages for On-Site Co content, including a beachhead strategy overview, a TCO calculator, and metallurgy market research materials. A unified `index.html` now provides tabbed navigation across the three experiences with shared styling and JavaScript.
 
 ## Repository contents
+- `index.html` – tabbed experience that aggregates the three standalone pages.
+- `assets/styles.css` – shared styling for the unified workspace.
+- `assets/app.js` – base JavaScript that powers tab switching, charts, and AI helper actions.
 - `Beachhead_Strategy_Auto_Heat_Treat.html` – beachhead strategy deck for automotive heat treat.
 - `Beachhead_TCO_Calculator.html` – calculator comparing Endogas and Maat CO total cost of ownership assumptions.
 - `CO_Metallurgy_Market_Research.html` – market research summary for metallurgical applications.
@@ -13,7 +16,7 @@ Static HTML pages for On-Site Co content, including a beachhead strategy overvie
    ```bash
    python -m http.server 8000
    ```
-3. Open http://localhost:8000 in a browser and navigate to the HTML file you want to view.
+3. Open http://localhost:8000 in a browser and navigate to `index.html` for the unified experience (or any of the standalone HTML files).
 
 ## GitHub Pages deployment
 GitHub Pages can host these static HTML files without any build step.
