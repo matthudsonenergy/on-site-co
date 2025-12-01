@@ -1,0 +1,459 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TCO Calculator: Endogas vs. Maat CO</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&family=Roboto+Mono:wght@400;700&display=swap" rel="stylesheet">
+
+    <style>
+        /* Strategic Command Theme */
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #0F172A; /* Slate 900 */
+            color: #E2E8F0; /* Slate 200 */
+        }
+
+        .mono-font {
+            font-family: 'Roboto Mono', monospace;
+        }
+
+        /* Input Styling */
+        input[type="number"] {
+            background-color: #0F172A; /* Slate 900 */
+            border: 1px solid #334155; /* Slate 700 */
+            color: white;
+            transition: all 0.2s;
+        }
+        input[type="number"]:focus {
+            outline: none;
+            border-color: #F97316; /* Orange 500 */
+            box-shadow: 0 0 0 2px rgba(249, 115, 22, 0.2);
+        }
+
+        /* Card Styling */
+        .strategy-card {
+            background-color: #1E293B; /* Slate 800 */
+            border: 1px solid #334155;
+            border-radius: 0.5rem;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.5);
+        }
+
+        /* Results Highlight */
+        .result-value {
+            font-family: 'Roboto Mono', monospace;
+            font-weight: 700;
+        }
+        .highlight-green { color: #34D399; } /* Emerald 400 */
+        .highlight-red { color: #F87171; }   /* Red 400 */
+        
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #0F172A; }
+        ::-webkit-scrollbar-thumb { background: #475569; border-radius: 4px; }
+    </style>
+</head>
+<body class="antialiased min-h-screen">
+
+    <!-- Top Navigation -->
+    <nav class="bg-slate-900 border-b border-slate-700 sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between h-16">
+                <div class="flex items-center gap-3">
+                    <span class="text-orange-500 font-extrabold text-xl tracking-tighter">STRATEGY<span class="text-white">DECK</span></span>
+                    <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-blue-900 text-blue-200 border border-blue-700">TOOL: TCO MODELER</span>
+                </div>
+                <div class="text-xs font-mono text-slate-500">
+                    SCENARIO: ENDOGAS REPLACEMENT
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <main class="max-w-7xl mx-auto px-4 py-8 space-y-8">
+
+        <!-- Header -->
+        <div class="flex flex-col md:flex-row justify-between items-end gap-4 border-b border-slate-700 pb-6">
+            <div>
+                <h1 class="text-3xl font-bold text-white mb-2">Total Cost of Ownership Model</h1>
+                <p class="text-slate-400 max-w-2xl">
+                    Compare the 10-year financial impact of maintaining legacy Endogas Generators versus switching to the Maat On-Site Pure CO system.
+                </p>
+            </div>
+            <div class="text-right">
+                <div class="text-xs text-slate-500 uppercase mb-1">Current Savings Projection</div>
+                <div class="text-2xl font-bold text-emerald-400 mono-font" id="headerSavings">$0</div>
+            </div>
+        </div>
+
+        <!-- Inputs Grid -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            
+            <!-- 1. Global Parameters -->
+            <div class="strategy-card p-6 border-l-4 border-blue-500">
+                <h3 class="text-sm font-bold text-blue-400 uppercase tracking-wider mb-4">Production Parameters</h3>
+                <div class="space-y-4">
+                    <div>
+                        <label class="flex justify-between text-sm text-slate-300 mb-1">
+                            Analysis Horizon
+                            <span class="text-slate-500 text-xs">Years</span>
+                        </label>
+                        <input type="number" id="years" class="w-full px-3 py-2 rounded text-right" value="10" min="1" max="30">
+                    </div>
+                    <div>
+                        <label class="flex justify-between text-sm text-slate-300 mb-1">
+                            Avg CO Demand
+                            <span class="text-slate-500 text-xs">TPD</span>
+                        </label>
+                        <input type="number" id="tpd" class="w-full px-3 py-2 rounded text-right" value="3" step="0.1">
+                    </div>
+                    <div>
+                        <label class="flex justify-between text-sm text-slate-300 mb-1">
+                            Operating Days
+                            <span class="text-slate-500 text-xs">/ Year</span>
+                        </label>
+                        <input type="number" id="daysPerYear" class="w-full px-3 py-2 rounded text-right" value="330" max="365">
+                    </div>
+                    <div class="pt-2 border-t border-slate-700">
+                         <div class="flex justify-between items-center">
+                            <span class="text-xs text-slate-400">Annual Production:</span>
+                            <span class="text-sm font-bold text-white mono-font" id="annualTonsDisplay">-- t/yr</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 2. Legacy Endogas (The Baseline) -->
+            <div class="strategy-card p-6 border-l-4 border-slate-500">
+                <h3 class="text-sm font-bold text-slate-400 uppercase tracking-wider mb-4">Legacy Endogas (Baseline)</h3>
+                <div class="space-y-3">
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-xs text-slate-400 mb-1">Capex (Eqpt)</label>
+                            <input type="number" id="endoCapex" class="w-full px-2 py-1.5 rounded text-sm text-right" value="150000">
+                        </div>
+                        <div>
+                            <label class="block text-xs text-slate-400 mb-1">Install Cost</label>
+                            <input type="number" id="endoInstall" class="w-full px-2 py-1.5 rounded text-sm text-right" value="75000">
+                        </div>
+                    </div>
+                    <div>
+                        <label class="flex justify-between text-xs text-slate-300 mb-1">
+                            Variable OpEx
+                            <span class="text-slate-500">$/Ton CO-eq</span>
+                        </label>
+                        <input type="number" id="endoVarCostPerTon" class="w-full px-2 py-1.5 rounded text-right" value="80">
+                        <p class="text-[10px] text-slate-500 mt-1 italic">Includes natural gas, electricity, water.</p>
+                    </div>
+                    <div>
+                        <label class="flex justify-between text-xs text-slate-300 mb-1">
+                            Fixed Maintenance
+                            <span class="text-slate-500">$/Year</span>
+                        </label>
+                        <input type="number" id="endoFixedMaint" class="w-full px-2 py-1.5 rounded text-right" value="15000">
+                    </div>
+                    <div class="bg-red-900/20 p-3 rounded border border-red-900/50 mt-2">
+                        <label class="flex justify-between text-xs text-red-200 mb-1">Major Overhaul (Every 5 Yrs)</label>
+                        <input type="number" id="endoOverhaulCost" class="w-full px-2 py-1.5 rounded text-right bg-slate-900 border-red-900/50" value="60000">
+                        <input type="hidden" id="endoOverhaulInterval" value="5">
+                    </div>
+                </div>
+            </div>
+
+            <!-- 3. Maat System (The Solution) -->
+            <div class="strategy-card p-6 border-l-4 border-orange-500 bg-orange-900/5">
+                <h3 class="text-sm font-bold text-orange-500 uppercase tracking-wider mb-4">Maat On-Site System</h3>
+                <div class="space-y-3">
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-xs text-slate-400 mb-1">Capex (Skid)</label>
+                            <input type="number" id="coCapex" class="w-full px-2 py-1.5 rounded text-sm text-right" value="250000">
+                        </div>
+                        <div>
+                            <label class="block text-xs text-slate-400 mb-1">Install Cost</label>
+                            <input type="number" id="coInstall" class="w-full px-2 py-1.5 rounded text-sm text-right" value="50000">
+                        </div>
+                    </div>
+                    <div>
+                        <label class="flex justify-between text-xs text-slate-300 mb-1">
+                            Variable CO Cost
+                            <span class="text-slate-500">$/Ton CO</span>
+                        </label>
+                        <input type="number" id="coVarCostPerTon" class="w-full px-2 py-1.5 rounded text-right" value="60">
+                         <p class="text-[10px] text-slate-500 mt-1 italic">Lower due to high efficiency reforming.</p>
+                    </div>
+                    <div>
+                        <label class="flex justify-between text-xs text-slate-300 mb-1">
+                            Fixed Service Fee
+                            <span class="text-slate-500">$/Year</span>
+                        </label>
+                        <input type="number" id="coFixedService" class="w-full px-2 py-1.5 rounded text-right" value="20000">
+                    </div>
+                    <div>
+                        <label class="flex justify-between text-xs text-slate-300 mb-1">
+                            Maint. & Consumables
+                            <span class="text-slate-500">$/Year</span>
+                        </label>
+                        <input type="number" id="coMaint" class="w-full px-2 py-1.5 rounded text-right" value="5000">
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Results Section -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            
+            <!-- Financial Summary Cards -->
+            <div class="lg:col-span-1 space-y-4">
+                <div class="strategy-card p-5">
+                    <h4 class="text-xs font-bold text-slate-500 uppercase mb-4">Total Cost (Horizon)</h4>
+                    
+                    <div class="mb-4">
+                        <div class="flex justify-between text-sm text-slate-300 mb-1">Legacy Endogas</div>
+                        <div class="text-xl font-mono text-slate-400" id="endoTotalDisplay">--</div>
+                    </div>
+                    
+                    <div class="mb-4">
+                        <div class="flex justify-between text-sm text-white font-bold mb-1">Maat System</div>
+                        <div class="text-xl font-mono text-orange-400" id="coTotalDisplay">--</div>
+                    </div>
+
+                    <div class="pt-4 border-t border-slate-700">
+                        <div class="flex justify-between text-sm text-emerald-400 mb-1">Projected Savings</div>
+                        <div class="text-2xl font-mono font-bold text-emerald-500" id="savingsDisplay">--</div>
+                    </div>
+                </div>
+
+                <div class="strategy-card p-5">
+                    <h4 class="text-xs font-bold text-slate-500 uppercase mb-2">Levelized Cost of Gas (LCOG)</h4>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <div class="text-[10px] text-slate-400">Endogas</div>
+                            <div class="text-lg font-mono text-slate-300" id="endoLCODisplay">--</div>
+                        </div>
+                        <div>
+                            <div class="text-[10px] text-orange-400">Maat CO</div>
+                            <div class="text-lg font-mono text-white font-bold" id="coLCODisplay">--</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Chart -->
+            <div class="lg:col-span-2 strategy-card p-4 relative">
+                <div class="absolute top-4 left-4 text-xs font-bold text-slate-500 uppercase">Cumulative Spend Trajectory</div>
+                <div class="h-[300px] mt-6">
+                    <canvas id="costChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <p class="text-center text-xs text-slate-600">
+            *Model assumes linear depreciation and constant utility rates. Does not factor in cost of quality/scrap reduction (see Business Case Tool).
+        </p>
+
+    </main>
+
+<script>
+  let chart;
+
+  // Formatter for Currency
+  function fmtCurrency(value) {
+    if (isNaN(value)) return "–";
+    return "$" + value.toLocaleString(undefined, { maximumFractionDigits: 0 });
+  }
+
+  // Formatter for LCO
+  function fmtCurrencyPerTon(value) {
+    if (isNaN(value)) return "–";
+    return "$" + value.toLocaleString(undefined, { maximumFractionDigits: 2 }) + "/ton";
+  }
+
+  function recalc() {
+    // --- 1. Gather Inputs ---
+    const years = Number(document.getElementById("years").value) || 0;
+    const tpd = Number(document.getElementById("tpd").value) || 0;
+    const daysPerYear = Number(document.getElementById("daysPerYear").value) || 0;
+    const annualTons = tpd * daysPerYear;
+
+    // Endogas
+    const endoCapex = Number(document.getElementById("endoCapex").value) || 0;
+    const endoInstall = Number(document.getElementById("endoInstall").value) || 0;
+    const endoFixedMaint = Number(document.getElementById("endoFixedMaint").value) || 0;
+    const endoVarCostPerTon = Number(document.getElementById("endoVarCostPerTon").value) || 0;
+    const endoOverhaulInterval = Number(document.getElementById("endoOverhaulInterval").value) || 5;
+    const endoOverhaulCost = Number(document.getElementById("endoOverhaulCost").value) || 0;
+
+    // Maat CO
+    const coCapex = Number(document.getElementById("coCapex").value) || 0;
+    const coInstall = Number(document.getElementById("coInstall").value) || 0;
+    const coFixedService = Number(document.getElementById("coFixedService").value) || 0;
+    const coVarCostPerTon = Number(document.getElementById("coVarCostPerTon").value) || 0;
+    const coMaint = Number(document.getElementById("coMaint").value) || 0;
+
+    // --- 2. Calculate Arrays ---
+    const yearsArr = [];
+    const endoCumulative = [];
+    const coCumulative = [];
+
+    let endoCum = endoCapex + endoInstall;
+    let coCum = coCapex + coInstall;
+
+    // Year 0
+    yearsArr.push(0);
+    endoCumulative.push(endoCum);
+    coCumulative.push(coCum);
+
+    for (let y = 1; y <= years; y++) {
+      let endoYearCost = endoFixedMaint + (endoVarCostPerTon * annualTons);
+      let coYearCost = coFixedService + coMaint + (coVarCostPerTon * annualTons);
+
+      // Apply Overhaul to Endogas
+      if (endoOverhaulInterval > 0 && y % endoOverhaulInterval === 0) {
+        endoYearCost += endoOverhaulCost;
+      }
+
+      endoCum += endoYearCost;
+      coCum += coYearCost;
+
+      yearsArr.push(y);
+      endoCumulative.push(endoCum);
+      coCumulative.push(coCum);
+    }
+
+    // --- 3. Compute Summaries ---
+    const totalEndo = endoCumulative[endoCumulative.length - 1];
+    const totalCO = coCumulative[coCumulative.length - 1];
+    const totalTonsOverHorizon = annualTons * years;
+
+    const endoLCO = totalTonsOverHorizon > 0 ? totalEndo / totalTonsOverHorizon : NaN;
+    const coLCO = totalTonsOverHorizon > 0 ? totalCO / totalTonsOverHorizon : NaN;
+    const savings = totalEndo - totalCO;
+
+    // --- 4. Update DOM ---
+    document.getElementById("annualTonsDisplay").textContent = 
+        isNaN(annualTons) ? "–" : annualTons.toLocaleString(undefined, { maximumFractionDigits: 0 }) + " t/yr";
+
+    document.getElementById("endoTotalDisplay").textContent = fmtCurrency(totalEndo);
+    document.getElementById("coTotalDisplay").textContent = fmtCurrency(totalCO);
+    document.getElementById("endoLCODisplay").textContent = fmtCurrencyPerTon(endoLCO);
+    document.getElementById("coLCODisplay").textContent = fmtCurrencyPerTon(coLCO);
+
+    const savingsEl = document.getElementById("savingsDisplay");
+    savingsEl.textContent = fmtCurrency(savings);
+    // Also update header savings
+    document.getElementById("headerSavings").textContent = fmtCurrency(savings);
+
+    if(savings >= 0) {
+        savingsEl.classList.remove('text-red-400');
+        savingsEl.classList.add('text-emerald-500');
+        document.getElementById("headerSavings").classList.add('text-emerald-400');
+        document.getElementById("headerSavings").classList.remove('text-red-400');
+    } else {
+        savingsEl.classList.add('text-red-400');
+        savingsEl.classList.remove('text-emerald-500');
+        document.getElementById("headerSavings").classList.remove('text-emerald-400');
+        document.getElementById("headerSavings").classList.add('text-red-400');
+    }
+
+    // --- 5. Update Chart ---
+    updateChart(yearsArr, endoCumulative, coCumulative);
+  }
+
+  function updateChart(labels, endoData, coData) {
+    const ctx = document.getElementById("costChart").getContext("2d");
+
+    // Common Chart Options for Dark Mode
+    const chartOptions = {
+        responsive: true,
+        maintainAspectRatio: false,
+        interaction: { mode: "index", intersect: false },
+        plugins: {
+            tooltip: {
+                backgroundColor: 'rgba(30, 41, 59, 0.9)', // Slate 800
+                titleColor: '#fff',
+                bodyColor: '#cbd5e1',
+                borderColor: '#475569',
+                borderWidth: 1,
+                callbacks: {
+                    label: (ctx) => ctx.dataset.label + ": " + fmtCurrency(ctx.parsed.y)
+                }
+            },
+            legend: {
+                labels: { color: '#cbd5e1' },
+                position: 'bottom'
+            }
+        },
+        scales: {
+            x: {
+                grid: { color: '#334155' }, // Slate 700
+                ticks: { color: '#94a3b8' }, // Slate 400
+                title: { display: true, text: "Operating Years", color: '#64748b' }
+            },
+            y: {
+                grid: { color: '#334155' },
+                ticks: { 
+                    color: '#94a3b8',
+                    callback: (value) => "$" + (value/1000).toLocaleString() + "k"
+                },
+                title: { display: false }
+            }
+        }
+    };
+
+    if (chart) {
+      chart.data.labels = labels;
+      chart.data.datasets[0].data = endoData;
+      chart.data.datasets[1].data = coData;
+      chart.update();
+    } else {
+      chart = new Chart(ctx, {
+        type: "line",
+        data: {
+          labels: labels,
+          datasets: [
+            {
+              label: "Legacy Endogas",
+              data: endoData,
+              borderColor: '#94a3b8', // Slate 400
+              backgroundColor: '#94a3b8',
+              borderWidth: 2,
+              tension: 0.2,
+              pointRadius: 2
+            },
+            {
+              label: "Maat On-Site CO",
+              data: coData,
+              borderColor: '#f97316', // Orange 500
+              backgroundColor: '#f97316',
+              borderWidth: 3,
+              borderDash: [0, 0], // Solid line for hero metric
+              tension: 0.2,
+              pointRadius: 3
+            }
+          ]
+        },
+        options: chartOptions
+      });
+    }
+  }
+
+  // Initialize
+  window.addEventListener("DOMContentLoaded", () => {
+    const inputs = document.querySelectorAll("input[type='number']");
+    inputs.forEach((el) => {
+      el.addEventListener("input", recalc);
+    });
+    recalc();
+  });
+</script>
+</body>
+</html>
